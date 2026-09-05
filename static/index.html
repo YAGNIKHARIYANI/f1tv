@@ -2098,23 +2098,31 @@
 
         const streamUrl = channel.direct_stream_url || channel.uri;
 
+        let errorRecoveryRetries = 0;
+
         if (Hls.isSupported()) {
           hls = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
-            backBufferLength: 60,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
+            backBufferLength: 30,
+            maxBufferLength: 20,
+            maxMaxBufferLength: 40,
             liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 6,
-            manifestLoadingTimeOut: 12000,
-            levelLoadingTimeOut: 12000
+            liveMaxLatencyDurationCount: 8,
+            manifestLoadingTimeOut: 8000,
+            manifestLoadingMaxRetry: 4,
+            levelLoadingTimeOut: 8000,
+            levelLoadingMaxRetry: 4,
+            fragLoadingTimeOut: 10000,
+            fragLoadingMaxRetry: 4,
+            fragLoadingRetryDelay: 500
           });
 
           hls.loadSource(streamUrl);
           hls.attachMedia(videoEl);
 
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            errorRecoveryRetries = 0;
             overlayEl.classList.add('hidden');
             videoEl.play().catch(e => console.log('Autoplay deferred:', e));
           });
@@ -2124,12 +2132,21 @@
             if (data.fatal) {
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  hls.startLoad();
+                  errorRecoveryRetries++;
+                  if (errorRecoveryRetries <= 2) {
+                    console.log(`[HLS] Network error retry ${errorRecoveryRetries}/2...`);
+                    hls.startLoad();
+                  } else {
+                    errorRecoveryRetries = 0;
+                    switchToCleanMirror();
+                  }
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.log('[HLS] Recovering media error...');
                   hls.recoverMediaError();
                   break;
                 default:
+                  errorRecoveryRetries = 0;
                   switchToCleanMirror();
                   break;
               }
@@ -2160,10 +2177,15 @@
     }
 
     function switchToCleanMirror() {
-      const cleanMirror = allChannels.find(c => c.id === 172218 || c.is_m3u8);
-      if (cleanMirror && cleanMirror.id !== activeChannel?.id) {
-        overlayText.textContent = 'Primary feed unavailable. Switching to clean mirror...';
-        setTimeout(() => selectChannel(cleanMirror), 1200);
+      // Find another online channel to smoothly switch to
+      const nextMirror = allChannels.find(c => c.id !== activeChannel?.id && c.status === 'online');
+      if (nextMirror) {
+        overlayEl.classList.remove('hidden');
+        overlayText.textContent = `Current feed unstable. Auto-switching to ${nextMirror.title}...`;
+        setTimeout(() => selectChannel(nextMirror), 1200);
+      } else {
+        overlayEl.classList.remove('hidden');
+        overlayText.textContent = 'Feed temporarily interrupted. Click another channel from the list.';
       }
     }
 

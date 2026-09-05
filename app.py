@@ -323,6 +323,35 @@ def get_schedule():
     })
 
 
+def fetch_upstream_with_retry(target_url, headers, timeout=6, max_retries=3):
+    """Fetches upstream content with automatic retries for transient 502/503/504 errors."""
+    last_err = None
+    for attempt in range(max_retries):
+        try:
+            req = urllib.request.Request(target_url, headers=headers)
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=timeout) as resp:
+                data = resp.read()
+                return resp.status, resp.headers, data
+        except urllib.error.HTTPError as e:
+            last_err = e
+            # 404 means the rolling segment expired from the live window; do not retry
+            if e.code == 404:
+                raise e
+            # Retry transient gateway / origin blips
+            if e.code in (500, 502, 503, 504) and attempt < max_retries - 1:
+                time.sleep(0.18 * (attempt + 1))
+                continue
+            raise e
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as e:
+            last_err = e
+            if attempt < max_retries - 1:
+                time.sleep(0.18 * (attempt + 1))
+                continue
+            raise e
+    if last_err:
+        raise last_err
+
+
 @app.route('/api/proxy_embed', methods=['GET'])
 def proxy_embed():
     """Proxies and unlocks web embed players by stripping X-Frame-Options and CSP headers."""
@@ -341,27 +370,23 @@ def proxy_embed():
             "Origin": base_origin
         }
 
-        req = urllib.request.Request(target_url, headers=custom_headers)
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=12) as resp:
-            content = resp.read().decode('utf-8', errors='ignore')
+        _, _, raw_bytes = fetch_upstream_with_retry(target_url, custom_headers, timeout=6, max_retries=2)
+        content = raw_bytes.decode('utf-8', errors='ignore')
 
-            # Inject base tag for relative links
-            base_tag = f'<base href="{target_url}">'
-            if '<head>' in content:
-                content = content.replace('<head>', f'<head>{base_tag}', 1)
-            else:
-                content = f'{base_tag}{content}'
+        # Inject base tag for relative links
+        base_tag = f'<base href="{target_url}">'
+        if '<head>' in content:
+            content = content.replace('<head>', f'<head>{base_tag}', 1)
+        else:
+            content = f'{base_tag}{content}'
 
-            response = Response(content, mimetype='text/html')
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            # Strip restrictive frame headers
-            response.headers.pop('X-Frame-Options', None)
-            response.headers.pop('Content-Security-Policy', None)
-            return response
+        response = Response(content, mimetype='text/html')
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
 
     except Exception as e:
         print(f"[EMBED PROXY WARN] {target_url} -> {e}")
-        # Fallback redirect
         return Response(f"""
         <!DOCTYPE html>
         <html>
@@ -375,7 +400,7 @@ def proxy_embed():
 
 @app.route('/api/proxy_m3u8', methods=['GET'])
 def proxy_m3u8():
-    """Proxies and rewrites M3U8 playlists and sub-playlists with CORS bypass."""
+    """Proxies and rewrites M3U8 playlists with resilient retry and CORS bypass."""
     target_url = request.args.get('url')
     if not target_url:
         return Response("Missing 'url' parameter", status=400)
@@ -389,51 +414,50 @@ def proxy_m3u8():
             "Origin": "https://f1live.dpdns.org" if "dpdns.org" in parsed_target.netloc else f"{parsed_target.scheme}://{parsed_target.netloc}"
         }
 
-        req = urllib.request.Request(target_url, headers=custom_headers)
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=12) as resp:
-            content_type = resp.headers.get('Content-Type', 'application/vnd.apple.mpegurl')
-            raw_bytes = resp.read()
+        status, resp_headers, raw_bytes = fetch_upstream_with_retry(target_url, custom_headers, timeout=6, max_retries=3)
+        content_type = resp_headers.get('Content-Type', 'application/vnd.apple.mpegurl')
 
-            if b'#EXTM3U' in raw_bytes:
-                content_str = raw_bytes.decode('utf-8', errors='ignore')
-                rewritten_lines = []
+        if b'#EXTM3U' in raw_bytes:
+            content_str = raw_bytes.decode('utf-8', errors='ignore')
+            rewritten_lines = []
 
-                for line in content_str.splitlines():
-                    trimmed = line.strip()
-                    if not trimmed:
-                        continue
+            for line in content_str.splitlines():
+                trimmed = line.strip()
+                if not trimmed:
+                    continue
 
-                    if trimmed.startswith('#EXT-X-KEY') or trimmed.startswith('#EXT-X-MAP'):
-                        def replace_key_uri(match):
-                            uri_val = match.group(1)
-                            full_uri = urllib.parse.urljoin(target_url, uri_val)
-                            clean_uri = urllib.parse.unquote(full_uri)
-                            proxied = f"/api/proxy_segment?url={urllib.parse.quote(clean_uri, safe='')}"
-                            return f'URI="{proxied}"'
-                        new_line = re.sub(r'URI=["\']([^"\']+)["\']', replace_key_uri, trimmed)
-                        rewritten_lines.append(new_line)
+                if trimmed.startswith('#EXT-X-KEY') or trimmed.startswith('#EXT-X-MAP'):
+                    def replace_key_uri(match):
+                        uri_val = match.group(1)
+                        full_uri = urllib.parse.urljoin(target_url, uri_val)
+                        proxied = f"/api/proxy_segment?url={urllib.parse.quote(full_uri, safe='')}"
+                        return f'URI="{proxied}"'
+                    new_line = re.sub(r'URI=["\']([^"\']+)["\']', replace_key_uri, trimmed)
+                    rewritten_lines.append(new_line)
 
-                    elif not trimmed.startswith('#'):
-                        full_seg_url = urllib.parse.urljoin(target_url, trimmed)
-                        clean_url = urllib.parse.unquote(full_seg_url)
-                        if clean_url.endswith('.m3u8') or '.m3u8?' in clean_url:
-                            proxied_url = f"/api/proxy_m3u8?url={urllib.parse.quote(clean_url, safe='')}"
-                        else:
-                            proxied_url = f"/api/proxy_segment?url={urllib.parse.quote(clean_url, safe='')}"
-                        rewritten_lines.append(proxied_url)
+                elif not trimmed.startswith('#'):
+                    full_seg_url = urllib.parse.urljoin(target_url, trimmed)
+                    if '.m3u8' in full_seg_url.lower():
+                        proxied_url = f"/api/proxy_m3u8?url={urllib.parse.quote(full_seg_url, safe='')}"
                     else:
-                        rewritten_lines.append(trimmed)
+                        proxied_url = f"/api/proxy_segment?url={urllib.parse.quote(full_seg_url, safe='')}"
+                    rewritten_lines.append(proxied_url)
+                else:
+                    rewritten_lines.append(trimmed)
 
-                final_m3u8 = "\n".join(rewritten_lines) + "\n"
-                response = Response(final_m3u8, mimetype='application/vnd.apple.mpegurl')
-                response.headers['Access-Control-Allow-Origin'] = '*'
-                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-                return response
-            else:
-                response = Response(raw_bytes, mimetype=content_type)
-                response.headers['Access-Control-Allow-Origin'] = '*'
-                return response
+            final_m3u8 = "\n".join(rewritten_lines) + "\n"
+            response = Response(final_m3u8, mimetype='application/vnd.apple.mpegurl')
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            return response
+        else:
+            response = Response(raw_bytes, mimetype=content_type)
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            return response
 
+    except urllib.error.HTTPError as e:
+        print(f"[M3U8 PROXY ERROR] {target_url} -> HTTP {e.code}: {e.reason}")
+        return Response(f"#EXTM3U\n#EXT-X-ERROR: Upstream HTTP {e.code}\n", status=e.code if e.code in (403, 404, 502, 503) else 502, mimetype='application/vnd.apple.mpegurl')
     except Exception as e:
         print(f"[M3U8 PROXY ERROR] {target_url} -> {e}")
         return Response(f"#EXTM3U\n#EXT-X-ERROR: {e}\n", status=502, mimetype='application/vnd.apple.mpegurl')
@@ -441,7 +465,7 @@ def proxy_m3u8():
 
 @app.route('/api/proxy_segment', methods=['GET'])
 def proxy_segment():
-    """Proxies TS and M4S media segments with high-speed streaming."""
+    """Proxies TS and M4S media segments with high-speed streaming and edge caching."""
     target_url = request.args.get('url')
     if not target_url:
         return Response("Missing 'url'", status=400)
@@ -458,20 +482,31 @@ def proxy_segment():
         if 'Range' in request.headers:
             custom_headers['Range'] = request.headers['Range']
 
-        req = urllib.request.Request(target_url, headers=custom_headers)
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=15) as resp:
-            data = resp.read()
-            c_type = resp.headers.get('Content-Type', 'video/MP2T')
-            response = Response(data, status=resp.status, mimetype=c_type)
-            response.headers['Access-Control-Allow-Origin'] = '*'
-            response.headers['Cache-Control'] = 'public, max-age=3600'
-            if 'Content-Range' in resp.headers:
-                response.headers['Content-Range'] = resp.headers['Content-Range']
-            return response
+        status, resp_headers, data = fetch_upstream_with_retry(target_url, custom_headers, timeout=8, max_retries=3)
+        c_type = resp_headers.get('Content-Type', 'video/MP2T')
 
+        response = Response(data, status=status, mimetype=c_type)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Cache-Control'] = 'public, max-age=86400, s-maxage=86400, immutable'
+        if 'Content-Range' in resp_headers:
+            response.headers['Content-Range'] = resp_headers['Content-Range']
+        return response
+
+    except urllib.error.HTTPError as e:
+        # If segment is expired on live edge (404), return 404 cleanly so Hls.js skips it
+        if e.code == 404:
+            res = Response("Segment expired from live window", status=404, mimetype='text/plain')
+            res.headers['Cache-Control'] = 'no-cache, no-store'
+            return res
+        print(f"[SEGMENT PROXY ERROR] {target_url} -> HTTP {e.code}: {e.reason}")
+        res = Response(f"Upstream HTTP {e.code}", status=e.code if e.code in (403, 404, 502, 503) else 502, mimetype='text/plain')
+        res.headers['Cache-Control'] = 'no-cache, no-store'
+        return res
     except Exception as e:
         print(f"[SEGMENT PROXY ERROR] {target_url} -> {e}")
-        return Response(str(e), status=502)
+        res = Response(str(e), status=502, mimetype='text/plain')
+        res.headers['Cache-Control'] = 'no-cache, no-store'
+        return res
 
 
 if __name__ == '__main__':
