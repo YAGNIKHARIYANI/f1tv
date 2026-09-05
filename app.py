@@ -10,12 +10,12 @@ import urllib.error
 from flask import Flask, request, jsonify, send_from_directory, Response
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='static', static_url_path='')
-CORS(app)
-
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
 os.makedirs(STATIC_DIR, exist_ok=True)
+
+app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='')
+CORS(app)
 
 CHANNELS_API_URL = "https://cdn.f1live.dpdns.org/channels.json"
 SCHEDULE_API_URL = "https://api.jolpi.ca/ergast/f1/2026/races/?format=json"
@@ -233,7 +233,7 @@ def fetch_schedule():
 
 @app.route('/')
 def index():
-    return send_from_directory('static', 'index.html')
+    return send_from_directory(STATIC_DIR, 'index.html')
 
 
 @app.route('/api/channels', methods=['GET'])
