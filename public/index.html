@@ -965,44 +965,79 @@
     }
 
     .modal-header {
-      padding: 14px 20px;
-      background: var(--bg-card);
+      padding: 14px 18px;
+      background: #111218;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
+      flex-shrink: 0;
     }
 
-    .modal-header h2 {
-      font-family: var(--font-body);
-      font-size: 15px;
-      font-weight: 600;
-      color: #ffffff;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+    .modal-header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .modal-header-title-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .modal-header-title {
+      font-family: var(--font-body);
+      font-size: 15.5px;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin: 0;
+    }
+
+    .modal-header-sub {
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .btn-close-modal {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      width: 30px;
-      height: 30px;
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s;
+      font-size: 15px;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      margin-left: 8px;
     }
 
-    .btn-close-modal:hover {
+    .btn-close-modal:hover,
+    .btn-close-modal:active {
       background: var(--f1-red);
       border-color: var(--f1-red);
-      color: white;
+      color: #ffffff;
+      transform: scale(1.08);
     }
 
     .schedule-list {
@@ -1033,31 +1068,66 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
+    }
+
+    .race-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
     }
 
     .race-round-badge {
       background: var(--f1-red);
       font-family: var(--font-body);
       font-size: 10.5px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 2px;
-      color: white;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 3px;
+      color: #ffffff;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+      letter-spacing: 0.3px;
+    }
+
+    .race-name-box {
+      min-width: 0;
+      flex: 1;
     }
 
     .race-name {
       font-family: var(--font-body);
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 600;
       color: white;
       text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .race-circuit {
       font-size: 11.5px;
       color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .race-date-badge {
+      text-align: right;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--f1-cyan);
+      font-size: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .session-grid {
@@ -1483,6 +1553,43 @@
       .telemetry-card {
         grid-template-columns: 1fr;
       }
+
+      .modal-header {
+        padding: 12px 14px;
+      }
+
+      .modal-header-title {
+        font-size: 13.5px;
+      }
+
+      .modal-header-sub {
+        font-size: 8.5px;
+      }
+
+      .btn-close-modal {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+        margin-left: 6px;
+      }
+
+      .schedule-modal-box {
+        max-height: 90vh;
+        width: 95%;
+      }
+
+      .schedule-list {
+        padding: 10px 12px;
+        gap: 8px;
+      }
+
+      .race-card {
+        padding: 10px 12px;
+      }
+
+      .race-name {
+        font-size: 13px;
+      }
     }
 
     @media (max-width: 360px) {
@@ -1600,7 +1707,7 @@
           <div class="channel-logo-tag" id="current-badge">F1 LIVE</div>
           <div class="channel-meta-text">
             <div class="current-channel-title" id="current-title">Select an F1 Channel</div>
-            <div class="current-channel-sub" id="current-sub">High-Speed M3U8 Direct Stream</div>
+            <div class="current-channel-sub" id="current-sub">Official Live Stream Feed</div>
           </div>
         </div>
 
@@ -1620,7 +1727,7 @@
         </div>
       </div>
 
-      <!-- Next Grand Prix & Telemetry Panel -->
+      <!-- Next Grand Prix & Countdown Panel -->
       <div class="telemetry-card tab-pane" id="pane-telemetry">
         <div class="telemetry-box highlight">
           <div class="telemetry-label"><i class="fa-solid fa-flag-checkered"></i> NEXT GRAND PRIX</div>
@@ -1629,18 +1736,6 @@
         <div class="telemetry-box gold">
           <div class="telemetry-label"><i class="fa-solid fa-stopwatch"></i> LIGHTS OUT IN</div>
           <div class="telemetry-value" id="next-gp-countdown" style="color: var(--f1-gold);">CALCULATING...</div>
-        </div>
-        <div class="telemetry-box accent">
-          <div class="telemetry-label"><i class="fa-solid fa-tv"></i> BROADCAST SOURCE</div>
-          <div class="telemetry-value" id="stat-source">Direct Master M3U8</div>
-        </div>
-        <div class="telemetry-box">
-          <div class="telemetry-label"><i class="fa-solid fa-gauge-high"></i> STREAM ENGINE</div>
-          <div class="telemetry-value" id="stat-engine">HLS.js Low-Latency</div>
-        </div>
-        <div class="telemetry-box">
-          <div class="telemetry-label"><i class="fa-solid fa-bolt"></i> STREAM LATENCY</div>
-          <div class="telemetry-value" id="stat-latency" style="color: var(--online-green);">REALTIME LIVE</div>
         </div>
       </div>
 
@@ -1687,13 +1782,16 @@
   <div id="schedule-modal" class="modal-overlay">
     <div class="schedule-modal-box">
       <div class="modal-header">
-        <h2>
-          <div class="lxf1-logo" style="display: inline-flex; vertical-align: middle; margin-right: 8px; transform: scale(0.85); transform-origin: left center;">
-            <span class="logo-lx">LX</span><span class="logo-f1">F1</span>
+        <div class="modal-header-left">
+          <div class="modal-header-title-row">
+            <div class="lxf1-logo" style="display: inline-flex; vertical-align: middle; transform: scale(0.82); transform-origin: left center; flex-shrink: 0;">
+              <span class="logo-lx">LX</span><span class="logo-f1">F1</span>
+            </div>
+            <h2 class="modal-header-title">2026 RACE CALENDAR</h2>
           </div>
-          2026 FIA FORMULA ONE WORLD CHAMPIONSHIP™ CALENDAR
-        </h2>
-        <button class="btn-close-modal" onclick="closeScheduleModal()" title="Close">
+          <div class="modal-header-sub">FIA FORMULA ONE WORLD CHAMPIONSHIP™</div>
+        </div>
+        <button class="btn-close-modal" onclick="closeScheduleModal()" title="Close Calendar" aria-label="Close Calendar">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -1853,14 +1951,14 @@
 
         card.innerHTML = `
           <div class="race-top">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="race-round-badge">ROUND ${r.round}</span>
-              <div>
-                <div class="race-name">${escapeHtml(r.raceName)}</div>
+            <div class="race-title-group">
+              <span class="race-round-badge">ROUND&nbsp;${r.round}</span>
+              <div class="race-name-box">
+                <div class="race-name" title="${escapeHtml(r.raceName)}">${escapeHtml(r.raceName)}</div>
                 <div class="race-circuit"><i class="fa-solid fa-location-dot" style="color: var(--f1-red);"></i> ${escapeHtml(r.Circuit?.circuitName || '')}, ${escapeHtml(r.Circuit?.Location?.country || '')}</div>
               </div>
             </div>
-            <div style="text-align: right; font-weight: 800; font-family: var(--font-mono); color: var(--f1-cyan); font-size: 13px;">
+            <div class="race-date-badge">
               <i class="fa-solid fa-calendar"></i> ${r.date}
             </div>
           </div>
@@ -1978,8 +2076,8 @@
 
       setText('current-title', channel.title || 'F1 Stream');
       setText('current-badge', channel.category_tag || 'F1 LIVE');
-      setText('current-sub', channel.is_m3u8 ? 'Ultra HD Direct Stream (HLS Engine)' : 'Official Broadcast Relay');
-      setText('stat-source', channel.is_m3u8 ? 'Direct Master M3U8' : (channel.provider?.toUpperCase() || 'LIVE FEED'));
+      setText('current-sub', channel.is_m3u8 ? 'Official 4K Ultra HD Broadcast' : 'Official Broadcast Relay');
+      setText('stat-source', channel.is_m3u8 ? 'Direct Master' : (channel.provider?.toUpperCase() || 'LIVE FEED'));
 
       renderChannelList();
       playStream(channel);
@@ -2000,7 +2098,7 @@
         videoEl.style.display = 'block';
 
         const streamUrl = channel.direct_stream_url || channel.uri;
-        document.getElementById('stat-engine').textContent = 'HLS.js Low-Latency';
+        setText('stat-engine', 'HLS.js Low-Latency');
 
         if (Hls.isSupported()) {
           hls = new Hls({
@@ -2052,7 +2150,7 @@
         videoEl.pause();
         embedEl.style.display = 'block';
         embedEl.src = channel.direct_stream_url || channel.uri;
-        document.getElementById('stat-engine').textContent = 'Unblocked Embed Proxy';
+        setText('stat-engine', 'Unblocked Embed Proxy');
 
         embedEl.onload = () => {
           overlayEl.classList.add('hidden');
