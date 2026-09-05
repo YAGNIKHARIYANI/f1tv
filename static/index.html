@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+  <title>Formula 1® Race Centre - Live Streaming Hub & 2026 Calendar</title>
+  
+  <!-- Fonts: Titillium Web (F1 style), Orbitron & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800;900&family=Titillium+Web:ital,wght@0,400;0,600;0,700;0,900;1,600;1,700;1,900&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- HLS.js for direct M3U8 stream decoding -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>
+
+  <style>
+    :root {
+      /* Official Formula 1 Color Palette */
+      --f1-red: #e10600;
+      --f1-red-hover: #b30000;
+      --f1-red-glow: rgba(225, 6, 0, 0.35);
+      --bg-main: #0e0f15;
+      --bg-card: #161720;
+      --bg-card-hover: #1e1f2b;
+      --bg-card-active: #24191d;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(225, 6, 0, 0.6);
+      --f1-cyan: #00d2be;
+      --f1-gold: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --online-green: #10b981;
+      --offline-red: #ef4444;
+      
+      --font-f1: 'Titillium Web', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'Orbitron', monospace;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Custom Modern Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-main);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2d3040;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--f1-red);
+    }
+
+    html {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background-color: var(--bg-main);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      background-image: 
+        radial-gradient(circle at 10% 0%, rgba(225, 6, 0, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 100%, rgba(0, 210, 190, 0.05) 0%, transparent 40%),
+        linear-gradient(180deg, #101118 0%, #0a0b0f 100%);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      min-height: 100dvh;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      border-top: 3px solid var(--f1-red);
+      position: relative;
+    }
+
+    /* ============================================================
+       TOP HEADER (Official Formula 1 Look)
+       ============================================================ */
+    header {
+      background: rgba(16, 17, 24, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      padding: 10px 24px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-inner {
+      max-width: 1720px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* Formula 1 SVG Logo */
+    .f1-logo-svg {
+      height: 26px;
+      width: auto;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(225, 6, 0, 0.35));
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--border-color);
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title-wrap h1 {
+      font-family: var(--font-f1);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: #ffffff;
+      line-height: 1.1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-title-live {
+      color: var(--f1-red);
+      font-size: 13px;
+      font-weight: 900;
+      padding: 1px 5px;
+      background: rgba(225, 6, 0, 0.15);
+      border-radius: 3px;
+      border: 1px solid rgba(225, 6, 0, 0.4);
+      display: inline-block;
+    }
+
+    .brand-subtitle {
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Live Status Pill */
+    .live-status-pill {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 6px 12px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      color: #34d399;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: live-pulse 1.6s infinite;
+    }
+
+    @keyframes live-pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Header Action Buttons */
+    .btn-f1 {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 7px 14px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-f1:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.18);
+      color: #fff;
+    }
+
+    .btn-f1.primary {
+      background: var(--f1-red);
+      border-color: var(--f1-red);
+      color: #ffffff;
+      box-shadow: 0 2px 10px var(--f1-red-glow);
+    }
+
+    .btn-f1.primary:hover {
+      background: var(--f1-red-hover);
+      border-color: var(--f1-red-hover);
+    }
+
+    /* ============================================================
+       MOBILE NAVIGATION TABS (Visible <= 1024px)
+       ============================================================ */
+    .mobile-tab-nav {
+      display: none;
+      background: #14151e;
+      border-bottom: 1px solid var(--border-color);
+      padding: 6px 12px;
+      gap: 8px;
+      position: sticky;
+      top: 48px;
+      z-index: 150;
+    }
+
+    .mobile-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 10px;
+      border-radius: 4px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .mobile-tab-btn.active {
+      background: var(--f1-red);
+      color: #ffffff;
+      border-color: var(--f1-red);
+      box-shadow: 0 2px 8px var(--f1-red-glow);
+    }
+
+    /* ============================================================
+       MAIN RACE DESK DUAL-COLUMN GRID
+       ============================================================ */
+    main {
+      flex: 1;
+      max-width: 1720px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px 24px 28px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px; /* minmax(0, 1fr) prevents sidebar overflow */
+      gap: 20px;
+      box-sizing: border-box;
+      min-width: 0;
+    }
+
+    /* ============================================================
+       LEFT: VIDEO MONITOR & TELEMETRY
+       ============================================================ */
+    .player-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-width: 0; /* Critical: allows player to shrink on smaller screens */
+    }
+
+    /* 16:9 Broadcast Video Container */
+    .player-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
+    }
+
+    .player-container.theatre {
+      aspect-ratio: 21 / 9;
+      max-height: 72vh;
+    }
+
+    video#f1-video-player {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      background: #000;
+    }
+
+    iframe#f1-embed-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+      background: #000;
+    }
+
+    /* ============================================================
+       CLEAN MINIMALIST F1 LOADER (Replaces clunky 5 dots)
+       ============================================================ */
+    .player-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(12, 13, 18, 0.94);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 20;
+      transition: opacity 0.25s ease;
+    }
+
+    .player-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Pure Circle with Red Line Spinner */
+    .f1-minimal-spinner {
+      width: 46px;
+      height: 46px;
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--f1-red);
+      border-radius: 50%;
+      animation: f1-spin 0.75s linear infinite;
+    }
+
+    @keyframes f1-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Stream Meta & Player Control Toolbar */
+    .stream-meta-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 18px;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .current-channel-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .channel-logo-tag {
+      background: var(--f1-red);
+      color: white;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px var(--f1-red-glow);
+    }
+
+    .channel-meta-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .current-channel-title {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .current-channel-sub {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-muted);
+    }
+
+    .player-tools {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-tool {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-tool:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      transform: translateY(-1px);
+    }
+
+    .btn-tool i {
+      font-size: 12px;
+    }
+
+    /* ============================================================
+       TELEMETRY & NEXT GRAND PRIX PANEL
+       ============================================================ */
+    .telemetry-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+
+    .telemetry-box {
+      background: #111218;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 4px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .telemetry-box::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: var(--border-color);
+    }
+
+    .telemetry-box.highlight::before { background: var(--f1-red); }
+    .telemetry-box.gold::before { background: var(--f1-gold); }
+    .telemetry-box.accent::before { background: var(--f1-cyan); }
+
+    .telemetry-label {
+      font-size: 10.5px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .telemetry-value {
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ============================================================
+       RIGHT: BROADCAST CHANNELS & FEEDS SIDEBAR
+       ============================================================ */
+    .sidebar-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .sidebar-header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-header-title {
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+    }
+
+    .sidebar-header-title i {
+      color: var(--f1-red);
+    }
+
+    /* Modern F1 Search Bar */
+    .search-box {
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: #101118;
+      border: 1px solid var(--border-color);
+      padding: 10px 14px 10px 38px;
+      border-radius: 4px;
+      color: #ffffff;
+      font-size: 12.5px;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .search-box input:focus {
+      border-color: var(--f1-red);
+      box-shadow: 0 0 0 1px var(--f1-red), 0 0 12px var(--f1-red-glow);
+      background: #141520;
+    }
+
+    .search-box i {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    /* Category Filter Tabs */
+    .filter-tabs {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-btn {
+      flex-shrink: 0;
+      background: #101118;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 11px;
+      border-radius: 3px;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 0.3px;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--f1-red);
+      color: #ffffff;
+      border-color: var(--f1-red);
+    }
+
+    /* Channels Scroll Container - Smooth flex height matching player column */
+    .channels-scroll {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: #383848 rgba(0, 0, 0, 0.2);
+    }
+
+    .channels-scroll::-webkit-scrollbar {
+      width: 5px;
+    }
+    .channels-scroll::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    .channels-scroll::-webkit-scrollbar-thumb {
+      background: #383848;
+      border-radius: 3px;
+    }
+    .channels-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--f1-red);
+    }
+
+    /* Channel Item Card */
+    .channel-card {
+      background: #101118;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: all 0.18s ease;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .channel-card:hover {
+      background: #181924;
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateX(2px);
+    }
+
+    .channel-card.active {
+      background: #24141a;
+      border-color: var(--f1-red);
+      box-shadow: inset 3px 0 0 var(--f1-red);
+    }
+
+    .sidebar-footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-color);
+      font-size: 10.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-family: var(--font-body);
+      flex-shrink: 0;
+    }
+
+    .channel-card-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    /* Boxed Racing Number */
+    .channel-num {
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+      background: #101117;
+      padding: 3px 0;
+      border-radius: 2px;
+      border: 1px solid var(--border-color);
+    }
+
+    .channel-card.active .channel-num {
+      color: var(--f1-red);
+      border-color: rgba(225, 6, 0, 0.4);
+      background: rgba(225, 6, 0, 0.12);
+    }
+
+    .channel-info-text {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .channel-name {
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #f1f5f9;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-badges {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .badge-quality {
+      font-size: 10px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: #101117;
+      border: 1px solid var(--border-color);
+      color: #cbd5e1;
+    }
+
+    .badge-quality.uhd {
+      border-color: rgba(245, 158, 11, 0.4);
+      color: var(--f1-gold);
+    }
+
+    .badge-quality.fhd {
+      border-color: rgba(0, 210, 190, 0.4);
+      color: var(--f1-cyan);
+    }
+
+    .badge-type {
+      font-size: 9.5px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      text-transform: uppercase;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: #101117;
+      color: var(--text-muted);
+    }
+
+    .badge-viewers {
+      font-size: 10px;
+      font-weight: 500;
+      font-family: var(--font-body);
+      padding: 1px 5px;
+      border-radius: 2px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .channel-card-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .status-dot-sm {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-dot-sm.online {
+      background: var(--online-green);
+      box-shadow: 0 0 6px var(--online-green);
+    }
+
+    .status-dot-sm.offline {
+      background: var(--offline-red);
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       2026 CALENDAR MODAL
+       ============================================================ */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(8, 9, 14, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .schedule-modal-box {
+      background: #14151e;
+      border: 1px solid var(--border-color);
+      border-top: 3px solid var(--f1-red);
+      border-radius: 6px;
+      max-width: 940px;
+      width: 100%;
+      max-height: 86vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9);
+    }
+
+    .modal-header {
+      padding: 14px 20px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-close-modal {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-close-modal:hover {
+      background: var(--f1-red);
+      border-color: var(--f1-red);
+      color: white;
+    }
+
+    .schedule-list {
+      padding: 16px 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .race-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .race-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    .race-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .race-round-badge {
+      background: var(--f1-red);
+      font-family: var(--font-body);
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 2px;
+      color: white;
+    }
+
+    .race-name {
+      font-family: var(--font-body);
+      font-size: 14.5px;
+      font-weight: 600;
+      color: white;
+      text-transform: uppercase;
+    }
+
+    .race-circuit {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #101117;
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+    }
+
+    .session-box {
+      font-size: 11px;
+    }
+
+    .session-name {
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-weight: 500;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.3px;
+    }
+
+    .session-time {
+      color: white;
+      font-family: var(--font-body);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    /* Shortcuts Bar */
+    .shortcuts-bar {
+      background: #0a0b0f;
+      border-top: 1px solid var(--border-color);
+      padding: 8px 24px;
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--font-body);
+      font-weight: 400;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .key-badge {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+      color: white;
+    }
+
+    /* ============================================================
+       RESPONSIVENESS BREAKPOINTS
+       ============================================================ */
+    @media (max-width: 1240px) {
+      main {
+        grid-template-columns: minmax(0, 1fr) 320px;
+        padding: 14px 18px 24px;
+        gap: 16px;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .mobile-tab-nav {
+        display: flex;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      main {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 12px 14px 20px;
+        gap: 14px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+      }
+
+      .sidebar-section {
+        height: auto;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      .player-section {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      .channels-scroll {
+        max-height: 480px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      .tab-pane {
+        display: none;
+      }
+
+      .tab-pane.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 8px 12px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .header-inner {
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      .brand-box {
+        gap: 8px;
+        min-width: 0;
+        flex-shrink: 1;
+        overflow: hidden;
+      }
+
+      .f1-logo-container {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .f1-logo-svg {
+        height: 18px;
+        width: auto;
+      }
+
+      .brand-divider {
+        display: none;
+      }
+
+      .brand-title-wrap {
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .brand-title-wrap h1 {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.1;
+      }
+
+      .brand-title-live {
+        display: none;
+      }
+
+      .brand-subtitle {
+        display: none;
+      }
+
+      .header-controls {
+        gap: 6px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .live-status-pill {
+        padding: 4px 8px;
+        font-size: 11px;
+        gap: 6px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      .live-count-text {
+        display: none;
+      }
+
+      .header-controls .btn-calendar-header {
+        display: none;
+      }
+
+      .header-controls .btn-refresh {
+        padding: 5px 9px;
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+
+      .header-controls .btn-refresh span {
+        display: none;
+      }
+
+      .mobile-tab-nav {
+        padding: 6px 10px;
+        gap: 6px;
+        top: 45px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .mobile-tab-btn {
+        padding: 8px 4px;
+        font-size: 11.5px;
+        gap: 5px;
+        min-width: 0;
+        white-space: nowrap;
+        flex: 1;
+        justify-content: center;
+      }
+
+      main {
+        padding: 10px 10px 24px;
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+      }
+
+      .stream-meta-bar {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .current-channel-info {
+        width: 100%;
+        min-width: 0;
+        gap: 8px;
+      }
+
+      .channel-meta-text {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .current-channel-title {
+        font-size: 13.5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .current-channel-sub {
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .player-tools {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .btn-tool {
+        padding: 7px 2px;
+        font-size: 10px;
+        font-weight: 600;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        gap: 4px;
+      }
+
+      .btn-tool i {
+        font-size: 11px;
+      }
+
+      .btn-tool span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .sidebar-section {
+        padding: 10px;
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 6px;
+      }
+
+      .search-box input {
+        padding: 9px 12px 9px 34px;
+        font-size: 12px;
+        box-sizing: border-box;
+      }
+
+      .channel-card {
+        padding: 9px 10px;
+        width: 100%;
+        box-sizing: border-box;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .channel-card-left {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .channel-info-text {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .channel-name {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .telemetry-card {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 10px;
+        gap: 8px;
+      }
+
+      .session-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .shortcuts-bar {
+        display: none;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header-inner {
+        gap: 6px;
+      }
+
+      .f1-logo-svg {
+        height: 16px;
+      }
+
+      .brand-title-wrap h1 {
+        font-size: 12px;
+      }
+
+      .live-status-pill {
+        padding: 4px 6px;
+        font-size: 10px;
+        gap: 4px;
+      }
+
+      .mobile-tab-nav {
+        padding: 5px 6px;
+        gap: 4px;
+      }
+
+      .mobile-tab-btn {
+        padding: 7px 3px;
+        font-size: 10.5px;
+        gap: 3px;
+      }
+
+      .btn-tool {
+        font-size: 9.5px;
+        padding: 6px 1px;
+      }
+
+      .btn-tool span {
+        font-size: 9.5px;
+      }
+
+      .telemetry-card {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .brand-title-wrap h1 {
+        font-size: 11px;
+      }
+
+      .live-status-pill span {
+        font-size: 9.5px;
+      }
+
+      .f1-logo-svg {
+        height: 15px;
+      }
+
+      .player-tools {
+        gap: 3px;
+      }
+
+      .btn-tool span {
+        display: none;
+      }
+
+      .btn-tool {
+        padding: 8px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Official Formula 1 Top Header -->
+  <header>
+    <div class="header-inner">
+      <a href="#" class="brand-box" title="Formula 1 Official Live Hub">
+        <div class="f1-logo-container">
+          <svg class="f1-logo-svg" viewBox="0 0 120 30" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#E10600" d="M29.548 1.488H0l9.314 16.59H2.868l4.498 8.016h7.502l-4.498-8.016h6.446l-4.498-8.016h11.23l5.998-8.574zm4.498 0l-5.998 8.574h8.574L42.62 1.488h-8.574zm14.57 0l-17.14 24.606h8.574l17.14-24.606h-8.574z"/>
+          </svg>
+        </div>
+        <div class="brand-divider"></div>
+        <div class="brand-title-wrap">
+          <h1>
+            <span class="brand-title-main">RACE CENTRE</span>
+            <span class="brand-title-live">LIVE</span>
+          </h1>
+          <span class="brand-subtitle">2026 FIA FORMULA ONE WORLD CHAMPIONSHIP™</span>
+        </div>
+      </a>
+
+      <div class="header-controls">
+        <div class="live-status-pill">
+          <div class="live-dot"></div>
+          <span id="live-online-count"><span class="live-count-num">--</span> <span class="live-count-text">FEEDS </span>LIVE</span>
+        </div>
+
+        <button class="btn-f1 primary btn-calendar-header" onclick="openScheduleModal()">
+          <i class="fa-solid fa-flag-checkered"></i> 2026 CALENDAR
+        </button>
+
+        <button class="btn-f1 btn-refresh" onclick="loadChannels(true)" title="Refresh Feeds">
+          <i class="fa-solid fa-rotate"></i> <span>REFRESH</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile Quick Navigation Tabs -->
+  <div class="mobile-tab-nav" id="mobile-tab-bar">
+    <button class="mobile-tab-btn active" id="tab-btn-channels" onclick="switchMobileTab('channels')">
+      <i class="fa-solid fa-satellite-dish"></i> FEEDS
+    </button>
+    <button class="mobile-tab-btn" id="tab-btn-telemetry" onclick="switchMobileTab('telemetry')">
+      <i class="fa-solid fa-gauge-high"></i> RACE HUB
+    </button>
+    <button class="mobile-tab-btn" onclick="openScheduleModal()">
+      <i class="fa-solid fa-calendar-days"></i> CALENDAR
+    </button>
+  </div>
+
+  <!-- Main Race Centre Layout -->
+  <main>
+    <!-- Left Column: Video Screen & Telemetry -->
+    <div class="player-section">
+      
+      <!-- Video Screen Container -->
+      <div class="player-container" id="player-wrapper">
+        <!-- Direct HLS/M3U8 Video Tag -->
+        <video id="f1-video-player" controls autoplay playsinline></video>
+
+        <!-- Fallback Embed Iframe -->
+        <iframe id="f1-embed-frame" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>
+
+        <!-- Pure Circle Loader with Red Line (Nothing Else) -->
+        <div id="player-overlay" class="player-overlay">
+          <div class="f1-minimal-spinner"></div>
+          <span id="overlay-text" style="display: none;"></span>
+        </div>
+      </div>
+
+      <!-- Current Stream Bar & Player Controls -->
+      <div class="stream-meta-bar">
+        <div class="current-channel-info">
+          <div class="channel-logo-tag" id="current-badge">F1 LIVE</div>
+          <div class="channel-meta-text">
+            <div class="current-channel-title" id="current-title">Select an F1 Channel</div>
+            <div class="current-channel-sub" id="current-sub">High-Speed M3U8 Direct Stream</div>
+          </div>
+        </div>
+
+        <div class="player-tools">
+          <button class="btn-tool" id="btn-sync" onclick="syncLive()" title="Live Edge Sync">
+            <i class="fa-solid fa-tower-broadcast" style="color: var(--online-green);"></i> <span>SYNC</span>
+          </button>
+          <button class="btn-tool" onclick="toggleTheatre()" title="Theatre Wide Screen">
+            <i class="fa-solid fa-expand"></i> <span>WIDE</span>
+          </button>
+          <button class="btn-tool" onclick="toggleFullscreen()" title="Fullscreen (F)">
+            <i class="fa-solid fa-maximize"></i> <span>FULL</span>
+          </button>
+          <button class="btn-tool" id="btn-popout" onclick="openPopout()" title="Popout Window">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> <span>POP</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Next Grand Prix & Telemetry Panel -->
+      <div class="telemetry-card tab-pane" id="pane-telemetry">
+        <div class="telemetry-box highlight">
+          <div class="telemetry-label"><i class="fa-solid fa-flag-checkered"></i> NEXT GRAND PRIX</div>
+          <div class="telemetry-value" id="next-gp-title" style="color: #ffffff;">AUSTRALIAN GP</div>
+        </div>
+        <div class="telemetry-box gold">
+          <div class="telemetry-label"><i class="fa-solid fa-stopwatch"></i> LIGHTS OUT IN</div>
+          <div class="telemetry-value" id="next-gp-countdown" style="color: var(--f1-gold);">CALCULATING...</div>
+        </div>
+        <div class="telemetry-box accent">
+          <div class="telemetry-label"><i class="fa-solid fa-tv"></i> BROADCAST SOURCE</div>
+          <div class="telemetry-value" id="stat-source">Direct Master M3U8</div>
+        </div>
+        <div class="telemetry-box">
+          <div class="telemetry-label"><i class="fa-solid fa-gauge-high"></i> STREAM ENGINE</div>
+          <div class="telemetry-value" id="stat-engine">HLS.js Low-Latency</div>
+        </div>
+        <div class="telemetry-box">
+          <div class="telemetry-label"><i class="fa-solid fa-bolt"></i> STREAM LATENCY</div>
+          <div class="telemetry-value" id="stat-latency" style="color: var(--online-green);">REALTIME LIVE</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Broadcast Feeds Sidebar -->
+    <div class="sidebar-section tab-pane active" id="pane-channels">
+      
+      <div class="sidebar-header-bar">
+        <div class="sidebar-header-title">
+          <i class="fa-solid fa-satellite-dish"></i> OFFICIAL BROADCAST CHANNELS
+        </div>
+      </div>
+
+      <!-- Search Input -->
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="channel-search" placeholder="Search Sky Sports, F1 TV Pro, ESPN..." oninput="filterChannels()">
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-btn active" onclick="setCategoryFilter('all', this)">ALL FEEDS</button>
+        <button class="filter-btn" onclick="setCategoryFilter('Sky Sports', this)">SKY SPORTS</button>
+        <button class="filter-btn" onclick="setCategoryFilter('F1 TV', this)">F1 TV PRO</button>
+        <button class="filter-btn" onclick="setCategoryFilter('clean', this)">CLEAN / 50FPS</button>
+        <button class="filter-btn" onclick="setCategoryFilter('m3u8', this)">DIRECT M3U8</button>
+      </div>
+
+      <!-- Channels List -->
+      <div class="channels-scroll" id="channels-list">
+        <!-- Injected dynamically via JS -->
+      </div>
+
+      <div class="sidebar-footer-bar">
+        <span><i class="fa-solid fa-satellite-dish" style="color: var(--online-green); margin-right: 4px;"></i> LIVE BROADCAST</span>
+        <span>AUTO-SYNC FEED</span>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- 2026 Season Calendar Modal -->
+  <div id="schedule-modal" class="modal-overlay">
+    <div class="schedule-modal-box">
+      <div class="modal-header">
+        <h2>
+          <svg width="24" height="20" viewBox="0 0 120 30" style="vertical-align: middle;">
+            <path fill="#E10600" d="M29.548 1.488H0l9.314 16.59H2.868l4.498 8.016h7.502l-4.498-8.016h6.446l-4.498-8.016h11.23l5.998-8.574zm4.498 0l-5.998 8.574h8.574L42.62 1.488h-8.574zm14.57 0l-17.14 24.606h8.574l17.14-24.606h-8.574z"/>
+          </svg>
+          2026 FIA FORMULA ONE WORLD CHAMPIONSHIP™ CALENDAR
+        </h2>
+        <button class="btn-close-modal" onclick="closeScheduleModal()" title="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="schedule-list" id="schedule-list">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Shortcuts Footer -->
+  <div class="shortcuts-bar">
+    <span><span class="key-badge">Space</span> Play/Pause</span>
+    <span><span class="key-badge">F</span> Fullscreen</span>
+    <span><span class="key-badge">M</span> Mute</span>
+    <span><span class="key-badge">T</span> Theatre Mode</span>
+    <span><span class="key-badge">L</span> Live Sync</span>
+    <span><span class="key-badge">R</span> Refresh Feeds</span>
+  </div>
+
+  <script>
+    let allChannels = [];
+    let allRaces = [];
+    let activeChannel = null;
+    let hls = null;
+    let currentCategory = 'all';
+    let currentSearch = '';
+    let viewerCounts = {};
+    const viewerId = localStorage.getItem('f1_viewer_id') || (crypto.randomUUID ? crypto.randomUUID() : '262f0aed-5407-400c-9509-4aab22f91bcc');
+    localStorage.setItem('f1_viewer_id', viewerId);
+
+    const videoEl = document.getElementById('f1-video-player');
+    const embedEl = document.getElementById('f1-embed-frame');
+    const overlayEl = document.getElementById('player-overlay');
+    const overlayText = document.getElementById('overlay-text');
+
+    // Mobile tab switcher
+    function switchMobileTab(tab) {
+      const paneChannels = document.getElementById('pane-channels');
+      const paneTelemetry = document.getElementById('pane-telemetry');
+      const btnChannels = document.getElementById('tab-btn-channels');
+      const btnTelemetry = document.getElementById('tab-btn-telemetry');
+
+      if (tab === 'channels') {
+        paneChannels.classList.add('active');
+        paneTelemetry.classList.remove('active');
+        btnChannels.classList.add('active');
+        btnTelemetry.classList.remove('active');
+      } else if (tab === 'telemetry') {
+        paneTelemetry.classList.add('active');
+        paneChannels.classList.remove('active');
+        btnTelemetry.classList.add('active');
+        btnChannels.classList.remove('active');
+      }
+    }
+
+    // Initialize Application
+    window.addEventListener('DOMContentLoaded', () => {
+      loadChannels();
+      loadSchedule();
+      pollViewerStats();
+      setupKeyboardShortcuts();
+
+      handleResponsiveTabs();
+      window.addEventListener('resize', handleResponsiveTabs);
+
+      // Auto-refresh (30s channels, 10s viewer counts)
+      setInterval(() => loadChannels(false), 30000);
+      setInterval(() => pollViewerStats(), 10000);
+    });
+
+    function handleResponsiveTabs() {
+      const paneChannels = document.getElementById('pane-channels');
+      const paneTelemetry = document.getElementById('pane-telemetry');
+      if (window.innerWidth > 992) {
+        paneChannels.classList.add('active');
+        paneTelemetry.classList.add('active');
+      } else {
+        if (!paneChannels.classList.contains('active') && !paneTelemetry.classList.contains('active')) {
+          switchMobileTab('channels');
+        }
+      }
+    }
+
+    async function pollViewerStats() {
+      try {
+        const chId = activeChannel ? activeChannel.id : 172218;
+        const res = await fetch(`/api/stats?viewerId=${viewerId}&channelId=${chId}`);
+        const data = await res.json();
+        if (data.success && data.counts) {
+          viewerCounts = data.counts;
+          renderChannelList();
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    }
+
+    async function loadChannels(forced = false) {
+      try {
+        if (forced) {
+          overlayEl.classList.remove('hidden');
+          overlayText.textContent = 'Refreshing F1 satellite feeds...';
+        }
+        
+        const url = forced ? '/api/channels?force=true' : '/api/channels';
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.success && data.channels) {
+          allChannels = data.channels;
+          
+          const onlineCount = allChannels.filter(c => c.status === 'online').length;
+          setLiveCount(onlineCount);
+
+          renderChannelList();
+
+          if (!activeChannel && allChannels.length > 0) {
+            const firstOnline = allChannels.find(c => c.status === 'online' && c.is_m3u8) || allChannels[0];
+            selectChannel(firstOnline);
+          } else {
+            overlayEl.classList.add('hidden');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load channels:', err);
+        overlayText.textContent = 'Feed unavailable. Click Refresh to reconnect.';
+      }
+    }
+
+    async function loadSchedule() {
+      try {
+        const res = await fetch('/api/schedule');
+        const data = await res.json();
+        if (data.success && data.races) {
+          allRaces = data.races;
+          renderScheduleModal();
+          updateNextRaceCountdown();
+        }
+      } catch (e) {
+        console.error('Failed to load schedule:', e);
+      }
+    }
+
+    function renderScheduleModal() {
+      const list = document.getElementById('schedule-list');
+      list.innerHTML = '';
+
+      allRaces.forEach(r => {
+        const card = document.createElement('div');
+        card.className = 'race-card';
+
+        const fp1 = r.FirstPractice ? `${r.FirstPractice.date} ${r.FirstPractice.time.slice(0,5)} UTC` : 'TBD';
+        const fp2 = r.SecondPractice ? `${r.SecondPractice.date} ${r.SecondPractice.time.slice(0,5)} UTC` : 'TBD';
+        const quali = r.Qualifying ? `${r.Qualifying.date} ${r.Qualifying.time.slice(0,5)} UTC` : 'TBD';
+        const race = `${r.date} ${r.time ? r.time.slice(0,5) : ''} UTC`;
+
+        card.innerHTML = `
+          <div class="race-top">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="race-round-badge">ROUND ${r.round}</span>
+              <div>
+                <div class="race-name">${escapeHtml(r.raceName)}</div>
+                <div class="race-circuit"><i class="fa-solid fa-location-dot" style="color: var(--f1-red);"></i> ${escapeHtml(r.Circuit?.circuitName || '')}, ${escapeHtml(r.Circuit?.Location?.country || '')}</div>
+              </div>
+            </div>
+            <div style="text-align: right; font-weight: 800; font-family: var(--font-mono); color: var(--f1-cyan); font-size: 13px;">
+              <i class="fa-solid fa-calendar"></i> ${r.date}
+            </div>
+          </div>
+          <div class="session-grid">
+            <div class="session-box"><div class="session-name">Practice 1</div><div class="session-time">${fp1}</div></div>
+            <div class="session-box"><div class="session-name">Practice 2</div><div class="session-time">${fp2}</div></div>
+            <div class="session-box"><div class="session-name">Qualifying</div><div class="session-time">${quali}</div></div>
+            <div class="session-box"><div class="session-name" style="color: var(--f1-red);">Grand Prix</div><div class="session-time" style="color: #ff6666;">${race}</div></div>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function updateNextRaceCountdown() {
+      if (allRaces.length === 0) return;
+      const next = allRaces[0];
+      setText('next-gp-title', `${next.raceName.toUpperCase()}`);
+
+      const raceIso = `${next.date}T${next.time || '00:00:00Z'}`;
+      const targetTime = new Date(raceIso).getTime();
+
+      setInterval(() => {
+        const now = new Date().getTime();
+        const diff = targetTime - now;
+
+        if (diff > 0) {
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+          const secs = Math.floor((diff % (1000 * 60)) / 1000);
+          setText('next-gp-countdown', `${days}D ${hours}H ${mins}M ${secs}S`);
+        } else {
+          setText('next-gp-countdown', `LIGHTS OUT! ON TRACK`);
+        }
+      }, 1000);
+    }
+
+    function openScheduleModal() {
+      document.getElementById('schedule-modal').classList.add('active');
+    }
+
+    function closeScheduleModal() {
+      document.getElementById('schedule-modal').classList.remove('active');
+    }
+
+    function renderChannelList() {
+      const container = document.getElementById('channels-list');
+      container.innerHTML = '';
+
+      let filtered = allChannels.filter(ch => {
+        const matchesSearch = ch.title.toLowerCase().includes(currentSearch.toLowerCase()) || 
+                              (ch.provider && ch.provider.toLowerCase().includes(currentSearch.toLowerCase()));
+        
+        if (!matchesSearch) return false;
+
+        if (currentCategory === 'all') return true;
+        if (currentCategory === 'clean') return ch.title.toLowerCase().includes('clean') || ch.title.toLowerCase().includes('50 fps');
+        if (currentCategory === 'm3u8') return ch.is_m3u8;
+        return ch.category_tag === currentCategory || ch.title.includes(currentCategory);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-muted); font-family: var(--font-f1); font-size: 13.5px;">No channels found for this criteria.</div>`;
+        return;
+      }
+
+      filtered.forEach((ch, idx) => {
+        const card = document.createElement('div');
+        const isActive = activeChannel && activeChannel.id === ch.id;
+        card.className = `channel-card ${isActive ? 'active' : ''}`;
+        card.onclick = () => selectChannel(ch);
+
+        const qualityClass = ch.quality_label.includes('UHD') ? 'uhd' : (ch.quality_label.includes('FHD') ? 'fhd' : '');
+        const streamType = ch.is_m3u8 ? 'DIRECT HLS' : (ch.is_embed ? 'LIVE EMBED' : 'STREAM');
+        const viewers = viewerCounts[ch.id];
+        const viewersHtml = viewers ? `<span class="badge-viewers"><i class="fa-solid fa-eye"></i> ${viewers}</span>` : '';
+        const paddedNum = String(idx + 1).padStart(2, '0');
+
+        card.innerHTML = `
+          <div class="channel-card-left">
+            <div class="channel-num">${paddedNum}</div>
+            <div class="channel-info-text">
+              <div class="channel-name">${escapeHtml(ch.title)}</div>
+              <div class="channel-badges">
+                <span class="badge-quality ${qualityClass}">${ch.quality_label}</span>
+                <span class="badge-type">${streamType}</span>
+                ${viewersHtml}
+              </div>
+            </div>
+          </div>
+          <div class="channel-card-right">
+            <div class="status-dot-sm ${ch.status === 'online' ? 'online' : 'offline'}" title="${ch.status.toUpperCase()}"></div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+
+    function setLiveCount(count) {
+      const el = document.getElementById('live-online-count');
+      if (el) {
+        el.innerHTML = `<span class="live-count-num">${escapeHtml(String(count))}</span> <span class="live-count-text">FEEDS </span>LIVE`;
+      }
+    }
+
+    function selectChannel(channel) {
+      if (!channel) return;
+      activeChannel = channel;
+
+      setText('current-title', channel.title || 'F1 Stream');
+      setText('current-badge', channel.category_tag || 'F1 LIVE');
+      setText('current-sub', channel.is_m3u8 ? 'Ultra HD Direct Stream (HLS Engine)' : 'Official Broadcast Relay');
+      setText('stat-source', channel.is_m3u8 ? 'Direct Master M3U8' : (channel.provider?.toUpperCase() || 'LIVE FEED'));
+
+      renderChannelList();
+      playStream(channel);
+    }
+
+    function playStream(channel) {
+      overlayEl.classList.remove('hidden');
+      overlayText.textContent = `Connecting to ${channel.title}...`;
+
+      if (hls) {
+        hls.destroy();
+        hls = null;
+      }
+
+      if (channel.is_m3u8) {
+        embedEl.style.display = 'none';
+        embedEl.src = 'about:blank';
+        videoEl.style.display = 'block';
+
+        const streamUrl = channel.direct_stream_url || channel.uri;
+        document.getElementById('stat-engine').textContent = 'HLS.js Low-Latency';
+
+        if (Hls.isSupported()) {
+          hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: true,
+            backBufferLength: 60,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 6,
+            manifestLoadingTimeOut: 12000,
+            levelLoadingTimeOut: 12000
+          });
+
+          hls.loadSource(streamUrl);
+          hls.attachMedia(videoEl);
+
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            overlayEl.classList.add('hidden');
+            videoEl.play().catch(e => console.log('Autoplay deferred:', e));
+          });
+
+          hls.on(Hls.Events.ERROR, (event, data) => {
+            console.warn('[HLS Error]:', data);
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  switchToCleanMirror();
+                  break;
+              }
+            }
+          });
+        } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+          videoEl.src = streamUrl;
+          videoEl.addEventListener('loadedmetadata', () => {
+            overlayEl.classList.add('hidden');
+            videoEl.play();
+          });
+        }
+      } else {
+        // Embed Stream Mode with proxy bypass
+        videoEl.style.display = 'none';
+        videoEl.pause();
+        embedEl.style.display = 'block';
+        embedEl.src = channel.direct_stream_url || channel.uri;
+        document.getElementById('stat-engine').textContent = 'Unblocked Embed Proxy';
+
+        embedEl.onload = () => {
+          overlayEl.classList.add('hidden');
+        };
+
+        setTimeout(() => {
+          overlayEl.classList.add('hidden');
+        }, 1500);
+      }
+    }
+
+    function switchToCleanMirror() {
+      const cleanMirror = allChannels.find(c => c.id === 172218 || c.is_m3u8);
+      if (cleanMirror && cleanMirror.id !== activeChannel?.id) {
+        overlayText.textContent = 'Primary feed unavailable. Switching to clean mirror...';
+        setTimeout(() => selectChannel(cleanMirror), 1200);
+      }
+    }
+
+    // Player Tools
+    function syncLive() {
+      if (hls && videoEl.duration) {
+        videoEl.currentTime = videoEl.duration - 1;
+        videoEl.play();
+      }
+    }
+
+    function toggleTheatre() {
+      document.getElementById('player-wrapper').classList.toggle('theatre');
+    }
+
+    function toggleFullscreen() {
+      const wrapper = document.getElementById('player-wrapper');
+      if (!document.fullscreenElement) {
+        wrapper.requestFullscreen().catch(err => alert(err.message));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function openPopout() {
+      if (!activeChannel) return;
+      const target = activeChannel.direct_stream_url || activeChannel.uri;
+      window.open(target, '_blank', 'width=1280,height=720,menubar=no,toolbar=no');
+    }
+
+    // Filters
+    function setCategoryFilter(cat, btn) {
+      currentCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderChannelList();
+    }
+
+    function filterChannels() {
+      currentSearch = document.getElementById('channel-search').value;
+      renderChannelList();
+    }
+
+    // Keyboard Shortcuts
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        if (['input', 'textarea'].includes(document.activeElement.tagName.toLowerCase())) return;
+
+        if (e.code === 'Space') {
+          e.preventDefault();
+          if (videoEl.paused) videoEl.play(); else videoEl.pause();
+        } else if (e.code === 'KeyF') {
+          e.preventDefault();
+          toggleFullscreen();
+        } else if (e.code === 'KeyT') {
+          e.preventDefault();
+          toggleTheatre();
+        } else if (e.code === 'KeyM') {
+          videoEl.muted = !videoEl.muted;
+        } else if (e.code === 'KeyL') {
+          syncLive();
+        } else if (e.code === 'KeyR') {
+          loadChannels(true);
+        }
+      });
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>

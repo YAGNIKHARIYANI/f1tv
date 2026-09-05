@@ -1,0 +1,25 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Large network capture / dump files (>100MB rejected by GitHub)
+*.har
+
+# Environments & IDE
+.env
+.venv
+.vscode/
+.idea/
+
+# OS generated
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.BIN/
+.DS_Store
