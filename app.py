@@ -30,6 +30,8 @@ last_schedule_time = 0
 cached_stats = {}
 last_stats_time = 0
 
+CF_WORKER_PROXY = os.environ.get('CF_WORKER_PROXY', '').rstrip('/')
+
 ssl_ctx = ssl.create_default_context()
 ssl_ctx.check_hostname = False
 ssl_ctx.verify_mode = ssl.CERT_NONE
@@ -49,8 +51,41 @@ DEFAULT_HEADERS = {
     "Priority": "u=1, i"
 }
 
-# Fallback channel dataset
+# Fallback channel dataset (Zero-origin bandwidth embeds prioritized)
 FALLBACK_CHANNELS = [
+    {
+        "id": 22,
+        "title": "Sky Sports F1 HD",
+        "uri": "https://vileembeds.pages.dev/embed/sky-sports-f1",
+        "timeline": 0,
+        "status": "online",
+        "is_embed": True,
+        "blockable": False,
+        "provider": "embed",
+        "updated_at": "2026-03-29T10:00:00"
+    },
+    {
+        "id": 154837,
+        "title": "Sky Sports F1 (CDN Live TV)",
+        "uri": "https://cdnlivetv.tv/api/v1/channels/player/?name=sky+sports+f1&code=gb&user=cdnlivetv&plan=free",
+        "timeline": 0,
+        "status": "online",
+        "is_embed": True,
+        "blockable": False,
+        "provider": "embed",
+        "updated_at": "2026-03-13T18:44:06.152377"
+    },
+    {
+        "id": 2054,
+        "title": "Sky Sport Live 1",
+        "uri": "https://pushembdz.store/embed/019ce27c-7352-7d6b-8ba3-f6117cbac2a4",
+        "timeline": 0,
+        "status": "online",
+        "is_embed": True,
+        "blockable": False,
+        "provider": "embed",
+        "updated_at": "2026-03-29T10:00:00"
+    },
     {
         "id": 172218,
         "title": "[Clean] Sky Sports F1 FHD (50 FPS)",
@@ -271,11 +306,14 @@ def get_channels():
         elif 'Live 1' in title or 'Practice' in title or 'Race' in title:
             tag = 'Live Event'
 
-        # Proxy links for 100% unblocked playback
+        # Playback URLs: Embeds use direct URI when possible to save 100% Vercel Origin Transfer
         if is_m3u8:
             playback_url = f"/api/proxy_m3u8?url={urllib.parse.quote(uri, safe='')}"
         elif is_embed:
-            playback_url = f"/api/proxy_embed?url={urllib.parse.quote(uri, safe='')}"
+            if ch.get('blockable', False):
+                playback_url = f"/api/proxy_embed?url={urllib.parse.quote(uri, safe='')}"
+            else:
+                playback_url = uri
         else:
             playback_url = uri
 
@@ -288,8 +326,8 @@ def get_channels():
             'direct_stream_url': playback_url
         })
 
-    # Sort to put Clean / Working streams at the top
-    enhanced.sort(key=lambda x: (x.get('status') != 'online', not x.get('is_m3u8'), x.get('id', 9999)))
+    # Sort: Prioritize online status, then zero-origin embed channels, then direct HLS
+    enhanced.sort(key=lambda x: (x.get('status') != 'online', x.get('is_m3u8'), x.get('id', 9999)))
 
     response = jsonify({
         'success': True,
@@ -453,6 +491,7 @@ def proxy_m3u8():
             content_str = raw_bytes.decode('utf-8', errors='ignore')
             rewritten_lines = []
 
+            seg_proxy_base = CF_WORKER_PROXY if CF_WORKER_PROXY else "/api/proxy_segment"
             for line in content_str.splitlines():
                 trimmed = line.strip()
                 if not trimmed:
@@ -462,7 +501,7 @@ def proxy_m3u8():
                     def replace_key_uri(match):
                         uri_val = match.group(1)
                         full_uri = urllib.parse.urljoin(target_url, uri_val)
-                        proxied = f"/api/proxy_segment?url={urllib.parse.quote(full_uri, safe='')}"
+                        proxied = f"{seg_proxy_base}?url={urllib.parse.quote(full_uri, safe='')}"
                         return f'URI="{proxied}"'
                     new_line = re.sub(r'URI=["\']([^"\']+)["\']', replace_key_uri, trimmed)
                     rewritten_lines.append(new_line)
@@ -472,7 +511,7 @@ def proxy_m3u8():
                     if '.m3u8' in full_seg_url.lower():
                         proxied_url = f"/api/proxy_m3u8?url={urllib.parse.quote(full_seg_url, safe='')}"
                     else:
-                        proxied_url = f"/api/proxy_segment?url={urllib.parse.quote(full_seg_url, safe='')}"
+                        proxied_url = f"{seg_proxy_base}?url={urllib.parse.quote(full_seg_url, safe='')}"
                     rewritten_lines.append(proxied_url)
                 else:
                     rewritten_lines.append(trimmed)

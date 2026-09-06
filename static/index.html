@@ -1900,11 +1900,17 @@
       if (jitterInterval) { clearInterval(jitterInterval); jitterInterval = null; }
     }
 
-    // Completely pause polling when tab is hidden, resume immediately when user returns
+    // Completely pause polling and suspend HLS chunk downloads when tab is hidden, resume immediately when user returns
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
         stopSmartPolling();
+        if (hls) {
+          try { hls.stopLoad(); } catch (e) {}
+        }
       } else {
+        if (hls) {
+          try { hls.startLoad(); } catch (e) {}
+        }
         pollViewerStats();
         loadChannels(false);
         startSmartPolling();
@@ -1960,7 +1966,8 @@
           renderChannelList();
 
           if (!activeChannel && allChannels.length > 0) {
-            const firstOnline = allChannels.find(c => c.status === 'online' && c.is_m3u8) || allChannels[0];
+            // Default to fast, stable embed feed to save 100% Vercel Origin Transfer
+            const firstOnline = allChannels.find(c => c.status === 'online' && c.is_embed) || allChannels.find(c => c.status === 'online') || allChannels[0];
             selectChannel(firstOnline);
           } else {
             overlayEl.classList.add('hidden');
@@ -2169,18 +2176,18 @@
           hls = new Hls({
             enableWorker: true,
             lowLatencyMode: true,
-            backBufferLength: 10,
-            maxBufferLength: 8,
-            maxMaxBufferLength: 16,
-            liveSyncDurationCount: 3,
-            liveMaxLatencyDurationCount: 6,
-            manifestLoadingTimeOut: 8000,
-            manifestLoadingMaxRetry: 4,
-            levelLoadingTimeOut: 8000,
-            levelLoadingMaxRetry: 4,
-            fragLoadingTimeOut: 10000,
-            fragLoadingMaxRetry: 4,
-            fragLoadingRetryDelay: 500
+            backBufferLength: 0,
+            maxBufferLength: 4,
+            maxMaxBufferLength: 6,
+            liveSyncDurationCount: 2,
+            liveMaxLatencyDurationCount: 4,
+            manifestLoadingTimeOut: 6000,
+            manifestLoadingMaxRetry: 3,
+            levelLoadingTimeOut: 6000,
+            levelLoadingMaxRetry: 3,
+            fragLoadingTimeOut: 6000,
+            fragLoadingMaxRetry: 3,
+            fragLoadingRetryDelay: 400
           });
 
           hls.loadSource(streamUrl);

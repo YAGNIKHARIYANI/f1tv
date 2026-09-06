@@ -35,6 +35,15 @@
           "value": "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
         }
       ]
+    },
+    {
+      "source": "/api/proxy_segment",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, s-maxage=86400, immutable"
+        }
+      ]
     }
   ]
 }
