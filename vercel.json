@@ -1,0 +1,40 @@
+{
+  "headers": [
+    {
+      "source": "/(.*)\\.(html|js|css|png|jpg|svg|ico|woff2)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/api/channels",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=30, s-maxage=60, stale-while-revalidate=180"
+        }
+      ]
+    },
+    {
+      "source": "/api/schedule",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/api/stats",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=15, s-maxage=25, stale-while-revalidate=45"
+        }
+      ]
+    }
+  ]
+}

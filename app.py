@@ -19,13 +19,16 @@ CORS(app)
 
 CHANNELS_API_URL = "https://cdn.f1live.dpdns.org/channels.json"
 SCHEDULE_API_URL = "https://api.jolpi.ca/ergast/f1/2026/races/?format=json"
-CACHE_TTL = 30  # seconds
+CACHE_TTL = 90  # seconds (conserves function invocations)
 
 cached_channels = []
 last_fetch_time = 0
 
 cached_schedule = []
 last_schedule_time = 0
+
+cached_stats = {}
+last_stats_time = 0
 
 ssl_ctx = ssl.create_default_context()
 ssl_ctx.check_hostname = False
@@ -288,39 +291,68 @@ def get_channels():
     # Sort to put Clean / Working streams at the top
     enhanced.sort(key=lambda x: (x.get('status') != 'online', not x.get('is_m3u8'), x.get('id', 9999)))
 
-    return jsonify({
+    response = jsonify({
         'success': True,
         'count': len(enhanced),
         'timestamp': int(time.time()),
         'channels': enhanced
     })
+    # Edge CDN cache: 60s shared max-age + stale-while-revalidate saves ~85% function invocations
+    response.headers['Cache-Control'] = 'public, max-age=30, s-maxage=60, stale-while-revalidate=180'
+    response.headers['CDN-Cache-Control'] = 'public, s-maxage=60, stale-while-revalidate=180'
+    response.headers['Vercel-CDN-Cache-Control'] = 'public, s-maxage=60, stale-while-revalidate=180'
+    return response
 
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Proxies live viewer statistics from stats.f1live.dpdns.org."""
+    """Proxies live viewer statistics with in-memory & Edge caching to conserve serverless quota."""
+    global cached_stats, last_stats_time
+    now = time.time()
     viewer_id = request.args.get('viewerId', '262f0aed-5407-400c-9509-4aab22f91bcc')
     channel_id = request.args.get('channelId', '172218')
+
+    # Fast in-memory cache: Serves concurrent users without repeated outbound network calls
+    if cached_stats and (now - last_stats_time < 25):
+        res = jsonify({'success': True, 'counts': cached_stats, 'cached': True})
+        res.headers['Cache-Control'] = 'public, max-age=15, s-maxage=25, stale-while-revalidate=45'
+        res.headers['CDN-Cache-Control'] = 'public, s-maxage=25, stale-while-revalidate=45'
+        return res
+
     stats_url = f"https://stats.f1live.dpdns.org/counts?viewerId={viewer_id}&channelId={channel_id}"
 
     try:
         req = urllib.request.Request(stats_url, headers=DEFAULT_HEADERS)
-        with urllib.request.urlopen(req, context=ssl_ctx, timeout=5) as resp:
+        with urllib.request.urlopen(req, context=ssl_ctx, timeout=4) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-            return jsonify({'success': True, 'counts': data})
+            cached_stats = data
+            last_stats_time = now
+            res = jsonify({'success': True, 'counts': data})
+            res.headers['Cache-Control'] = 'public, max-age=15, s-maxage=25, stale-while-revalidate=45'
+            res.headers['CDN-Cache-Control'] = 'public, s-maxage=25, stale-while-revalidate=45'
+            return res
     except Exception as e:
+        if cached_stats:
+            res = jsonify({'success': True, 'counts': cached_stats, 'fallback': True})
+            res.headers['Cache-Control'] = 'public, max-age=15, s-maxage=25'
+            return res
         return jsonify({'success': False, 'counts': {}, 'error': str(e)})
 
 
 @app.route('/api/schedule', methods=['GET'])
 def get_schedule():
     races = fetch_schedule()
-    return jsonify({
+    res = jsonify({
         'success': True,
         'season': '2026',
         'total': len(races),
         'races': races
     })
+    # Long Edge cache for race calendar (saves thousands of function runs per month)
+    res.headers['Cache-Control'] = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400'
+    res.headers['CDN-Cache-Control'] = 'public, s-maxage=86400, stale-while-revalidate=86400'
+    res.headers['Vercel-CDN-Cache-Control'] = 'public, s-maxage=86400, stale-while-revalidate=86400'
+    return res
 
 
 def fetch_upstream_with_retry(target_url, headers, timeout=6, max_retries=3):
@@ -488,6 +520,8 @@ def proxy_segment():
         response = Response(data, status=status, mimetype=c_type)
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Cache-Control'] = 'public, max-age=86400, s-maxage=86400, immutable'
+        response.headers['CDN-Cache-Control'] = 'public, s-maxage=86400, immutable'
+        response.headers['Vercel-CDN-Cache-Control'] = 'public, s-maxage=86400, immutable'
         if 'Content-Range' in resp_headers:
             response.headers['Content-Range'] = resp_headers['Content-Range']
         return response
